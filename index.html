@@ -260,7 +260,7 @@
 
     <script>
         // 핵심 요구 사항 1: 로컬 백엔드 서버 주소 설정
-        const SERVER_URL = 'https://9a809f96-16c8-4e98-b263-a895e4033d05-00-1115s3je3tzzn.pike.replit.dev/generate_minutes';
+        const SERVER_URL = 'https://9a809f96-16c8-4e98-b263-a895e4033d05-00-1115s3je3tzzn.pike.replit.dev/generate_minutes'; 
 
         let attendees = [];
         let agendas = [];
@@ -327,7 +327,7 @@
 
             // 버튼 비활성화 (중복 요청 방지)
             registerBtn.disabled = true;
-            registerBtn.textContent = "⏳ AI가 회의록을 작성 중입니다... (잠시만 기다려주세요)";
+            registerBtn.textContent = "⏳ AI가 회의록을 작성 중입니다...";
             statusMessage.textContent = "서버와 통신 중입니다...";
             statusMessage.style.backgroundColor = '#fff3cd';
             statusMessage.style.color = '#856404';
@@ -336,7 +336,7 @@
             // 1. Word 문서 복사용 텍스트 구성 (기본 정보)
             // =========================================================================
             const baseText = createWordDocumentText(date, startTime, endTime, location, attendees, agendas);
-            resultContent.textContent = baseText; // 일단 기본 정보 먼저 표시
+            resultContent.textContent = baseText + "\n\n... ⏳ AI가 회의록을 분석하고 있습니다. 잠시만 기다려주세요 ..."; // 로딩 표시 추가
 
             // =========================================================================
             // 2. API 전송용 데이터 구성 (백엔드 포맷에 맞춤)
@@ -356,6 +356,7 @@
             // 3. fetch 함수를 이용한 POST 통신 로직
             // =========================================================================
             try {
+                // 3초 타임아웃은 너무 짧을 수 있으니 기본 fetch 사용 (Gemini는 가끔 5~10초 걸림)
                 const response = await fetch(SERVER_URL, {
                     method: 'POST',
                     headers: {
@@ -420,7 +421,10 @@
 
             } catch (error) {
                 console.error('API 통신 오류:', error);
-                statusMessage.textContent = `❌ 오류 발생: ${error.message} (백엔드 서버가 켜져 있는지 확인하세요)`;
+                // 에러 발생 시 결과창에도 확실히 표시
+                resultContent.textContent = baseText + `\n\n❌ 오류 발생: ${error.message}\n(백엔드 서버 'main.py'가 실행 중인지 확인하세요. 터미널에 에러 로그가 있는지 보세요.)`;
+                
+                statusMessage.textContent = `❌ 통신 실패: ${error.message}`;
                 statusMessage.style.backgroundColor = '#f8d7da';
                 statusMessage.style.color = '#721c24';
             } finally {
@@ -475,6 +479,9 @@
                 text += `  - 내용: ${agenda}\n`;
             });
             
+            text += "\n========================================================\n";
+            text += "작성일: " + new Date().toLocaleDateString('ko-KR');
+
             return text;
         }
 
@@ -494,4 +501,3 @@
     </script>
 </body>
 </html>
-
