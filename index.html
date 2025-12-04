@@ -152,6 +152,11 @@
         #register-btn:hover {
             background-color: #0056b3;
         }
+        
+        #register-btn:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
 
         /* 상태/결과 영역 스타일 (아래에 넓게 배치) */
         #output-area {
@@ -169,7 +174,7 @@
             margin-top: 15px;
             padding: 15px;
             border-radius: 4px;
-            background-color: #3d1881; /* 경고 색상 */
+            background-color: #fff3cd; /* 경고 색상 (기본) */
             color: #856404;
             font-weight: bold;
             min-height: 20px;
@@ -238,15 +243,15 @@
                 <div id="agenda-list"></div>
             </div>
 
-            <button type="button" id="register-btn" onclick="register()">회의록 전송 및 데이터 구성</button>
+            <button type="button" id="register-btn" onclick="register()">회의록 전송 및 AI 생성 요청</button>
         </div>
 
         <div id="output-area">
             <h2>출력 결과 (Word 문서 복사용)</h2>
-            <div id="status-message">전송 버튼을 누르면 구성된 JSON 데이터와 Word 복사본이 이 영역에 표시됩니다.</div>
+            <div id="status-message">전송 버튼을 누르면 AI가 생성한 회의록이 이곳에 표시됩니다.</div>
             
-            <p><strong>JSON 구성 데이터:</strong></p>
-            <pre id="json-content" style="background-color: #f0f0f0; border: 1px dashed #aaa; padding: 15px; margin-bottom: 20px;"></pre>
+            <p><strong>JSON 구성 데이터 (디버깅용):</strong></p>
+            <pre id="json-content" style="background-color: #f0f0f0; border: 1px dashed #aaa; padding: 15px; margin-bottom: 20px; overflow-x: auto; max-height: 200px;"></pre>
 
             <p><strong>Word 문서 복사용 텍스트 (Ctrl+A, Ctrl+C로 전체 복사 가능):</strong></p>
             <pre id="result-content" tabindex="0"></pre>
@@ -254,8 +259,8 @@
     </div>
 
     <script>
-        //  핵심 요구 사항 1: API 서버 주소 상수 정의
-        const SERVER_URL = 'https://9a809f96-16c8-4e98-b263-a895e4033d05-00-1115s3je3tzzn.pike.replit.dev/register'; 
+        // 핵심 요구 사항 1: 로컬 백엔드 서버 주소 설정
+        const SERVER_URL = 'https://9a809f96-16c8-4e98-b263-a895e4033d05-00-1115s3je3tzzn.pike.replit.dev'; 
 
         let attendees = [];
         let agendas = [];
@@ -302,7 +307,7 @@
         /**
          * 회의록 데이터를 수집하여 서버로 전송하고, 출력 공간에 복사하기 좋은 형태로 출력합니다.
          */
-        function register() {
+        async function register() {
             const date = document.getElementById('meeting-date').value;
             const startTime = document.getElementById('start-time').value;
             const endTime = document.getElementById('end-time').value;
@@ -310,70 +315,119 @@
             const statusMessage = document.getElementById('status-message');
             const jsonContent = document.getElementById('json-content');
             const resultContent = document.getElementById('result-content');
+            const registerBtn = document.getElementById('register-btn');
 
             // 필수 입력 필드 확인
             if (!date || !startTime || !endTime || !location || attendees.length === 0 || agendas.length === 0) {
                 statusMessage.textContent = '오류: 모든 필수 정보를 입력하고 참석자 및 안건을 추가해야 합니다.';
+                statusMessage.style.backgroundColor = '#f8d7da';
+                statusMessage.style.color = '#721c24';
                 return;
             }
 
+            // 버튼 비활성화 (중복 요청 방지)
+            registerBtn.disabled = true;
+            registerBtn.textContent = "⏳ AI가 회의록을 작성 중입니다... (잠시만 기다려주세요)";
+            statusMessage.textContent = "서버와 통신 중입니다...";
+            statusMessage.style.backgroundColor = '#fff3cd';
+            statusMessage.style.color = '#856404';
+
             // =========================================================================
-            // 1. API 전송용 JSON 데이터 구성
+            // 1. Word 문서 복사용 텍스트 구성 (기본 정보)
             // =========================================================================
-            const meetingData = {
-                date: date,
-                start_time: startTime,
-                end_time: endTime,
-                duration: calculateDuration(startTime, endTime), // 회의 시간 계산
-                location: location,
-                attendees: attendees,
-                agendas: agendas.map((content, index) => ({
-                    id: index + 1,
-                    content: content,
-                    status: "Completed" 
-                }))
+            const baseText = createWordDocumentText(date, startTime, endTime, location, attendees, agendas);
+            resultContent.textContent = baseText; // 일단 기본 정보 먼저 표시
+
+            // =========================================================================
+            // 2. API 전송용 데이터 구성 (백엔드 포맷에 맞춤)
+            // =========================================================================
+            // 백엔드의 MeetingData 모델은 title, participants, content를 요구합니다.
+            const backendPayload = {
+                title: `${date} ${location} 회의`,
+                participants: attendees,
+                // 프론트에서 정리한 깔끔한 텍스트를 AI에게 '내용'으로 전달합니다.
+                content: baseText 
             };
 
-            // JSON 데이터를 결과 영역에 출력
-            jsonContent.textContent = JSON.stringify(meetingData, null, 2);
-
-
-            // =========================================================================
-            // 2. Word 문서 복사용 텍스트 구성
-            // =========================================================================
-            const wordText = createWordDocumentText(date, startTime, endTime, location, attendees, agendas);
-            resultContent.textContent = wordText;
-            
-            statusMessage.textContent = '데이터 구성 완료. 아래 출력 공간의 내용을 복사하여 워드 문서에 붙여넣으세요. 서버 전송을 시도합니다...';
-
+            // 디버깅용 JSON 출력
+            jsonContent.textContent = JSON.stringify(backendPayload, null, 2);
 
             // =========================================================================
-            // 3. fetch 함수를 이용한 POST 통신 로직 (핵심 요구 사항)
+            // 3. fetch 함수를 이용한 POST 통신 로직
             // =========================================================================
-            fetch(SERVER_URL, {
-                method: 'POST', // 통신 방식: method: 'POST'
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                // JSON 데이터: 입력 필드의 데이터를 모아 JSON 형태로 서버에 전송
-                body: JSON.stringify(meetingData), 
-            })
-            .then(response => {
+            try {
+                const response = await fetch(SERVER_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(backendPayload), 
+                });
+
                 if (!response.ok) {
-                    throw new Error(`HTTP 오류! 상태: ${response.status}`);
+                    throw new Error(`서버 오류! 상태 코드: ${response.status}`);
                 }
-                return response.json();
-            })
-            .then(data => {
-                statusMessage.textContent = `🎉 회의록 등록 성공! 서버 응답: ${JSON.stringify(data).substring(0, 50)}...`;
-            })
-            .catch(error => {
-                // SERVER_URL이 비어있으므로, 통신은 여기서 오류를 반환
+
+                const aiData = await response.json();
+                
+                // 성공 메시지 표시
+                statusMessage.textContent = '🎉 AI 회의록 생성 완료! 아래 내용을 확인하세요.';
+                statusMessage.style.backgroundColor = '#d4edda';
+                statusMessage.style.color = '#155724';
+
+                // =========================================================================
+                // 4. AI 응답 결과를 Word 텍스트에 추가
+                // =========================================================================
+                let finalText = baseText;
+                
+                finalText += "\n\n========================================================\n";
+                finalText += "                 [AI 생성 결과]                 \n";
+                finalText += "========================================================\n\n";
+                
+                finalText += "📌 3줄 요약\n";
+                finalText += "--------------------------------------------------------\n";
+                finalText += `${aiData.summary}\n\n`;
+
+                if (aiData.decisions && aiData.decisions.length > 0) {
+                    finalText += "✅ 결정된 사항 (AI 추출)\n";
+                    finalText += "--------------------------------------------------------\n";
+                    aiData.decisions.forEach(item => {
+                        finalText += `- ${item}\n`;
+                    });
+                    finalText += "\n";
+                }
+
+                if (aiData.action_items && aiData.action_items.length > 0) {
+                    finalText += "⚡ Action Items (할 일)\n";
+                    finalText += "--------------------------------------------------------\n";
+                    aiData.action_items.forEach(item => {
+                        finalText += `- [${item.assignee}] ${item.task} (~${item.due_date})\n`;
+                    });
+                    finalText += "\n";
+                }
+
+                if (aiData.dialogue_script && aiData.dialogue_script.length > 0) {
+                    finalText += "💬 대화 시나리오 재구성\n";
+                    finalText += "--------------------------------------------------------\n";
+                    aiData.dialogue_script.forEach(chat => {
+                        finalText += `${chat.speaker}: ${chat.text}\n`;
+                    });
+                }
+
+                // 최종 결과를 화면에 업데이트
+                resultContent.textContent = finalText;
+                resultContent.focus(); // 바로 복사할 수 있게 포커스
+
+            } catch (error) {
                 console.error('API 통신 오류:', error);
-                statusMessage.textContent += ` ❌ API 통신 오류 발생. (SERVER_URL이 비어있거나, 서버 연결 실패) - ${error.message}`;
-            });
-            // 출력 공간으로 스크롤 이동
-            resultContent.focus(); 
+                statusMessage.textContent = `❌ 오류 발생: ${error.message} (백엔드 서버가 켜져 있는지 확인하세요)`;
+                statusMessage.style.backgroundColor = '#f8d7da';
+                statusMessage.style.color = '#721c24';
+            } finally {
+                // 버튼 상태 복구
+                registerBtn.disabled = false;
+                registerBtn.textContent = "회의록 전송 및 AI 생성 요청";
+            }
         }
 
         /**
@@ -388,7 +442,6 @@
 
             let diffMinutes = endMinutes - startMinutes;
             if (diffMinutes < 0) {
-                 // 자정을 넘어간 경우 (단순화를 위해 일단 하루 안으로 가정)
                  diffMinutes += 24 * 60;
             }
 
@@ -414,23 +467,16 @@
             text += `* 장소: ${location}\n`;
             text += `* 참석자: ${attendees.join(', ')}\n\n`;
 
-            text += "2. 회의 내용 및 결정 사항\n";
+            text += "2. 회의 안건 (Raw Data)\n";
             text += "--------------------------------------------------------\n";
             
             agendas.forEach((agenda, index) => {
                 text += `\n[안건 ${index + 1}]\n`;
                 text += `  - 내용: ${agenda}\n`;
-                text += `  - 결정사항/결과: (결과를 수동으로 입력하세요.)\n`;
-                text += `  - 담당자: \n`;
-                text += `  - 마감일: \n`;
             });
-
-            text += "\n========================================================\n";
-            text += "작성일: " + new Date().toLocaleDateString('ko-KR');
             
             return text;
         }
-
 
         // 초기 렌더링 및 기본값 설정
         document.addEventListener('DOMContentLoaded', () => {
@@ -441,14 +487,10 @@
             const dateStr = now.toISOString().substring(0, 10);
             document.getElementById('meeting-date').value = dateStr;
 
-            // 기본 시간 설정 (예시로 10시부터 11시 30분)
             document.getElementById('start-time').value = '10:00';
             document.getElementById('end-time').value = '11:30';
         });
 
     </script>
 </body>
-
 </html>
-
-
