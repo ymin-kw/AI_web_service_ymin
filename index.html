@@ -1,504 +1,331 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>깔끔한 회의록 작성기</title>
-    <style>
-        /* 깔끔한 화이트 테마 디자인 */
-        :root {
-            --primary-color: #007bff; /* 파란색 계열 (강조 색상) */
-            --secondary-color: #28a745; /* 녹색 계열 (버튼 색상) */
-            --background-color: white; /* 흰색 배경 */
-            --text-color: #333333; /* 어두운 텍스트 */
-            --card-background: #f8f9fa; /* 컴포넌트 배경 (약간 회색) */
-            --border-color: #ced4da; /* 경계선 색상 */
-            --font-family: 'Malgun Gothic', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
+<meta charset="UTF-8" />
+<title>삼성 라이온즈 선수 검색 (AI 서비스)</title>
 
-        body {
-            font-family: var(--font-family);
-            background-color: var(--background-color);
-            color: var(--text-color);
-            margin: 0;
-            padding: 30px;
-            line-height: 1.6;
-            display: flex;
-            justify-content: center;
-        }
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Pretendard:wght@300;400;600;700&display=swap" rel="stylesheet">
 
-        .container {
-            width: 100%;
-            max-width: 900px;
-        }
+<style>
+  body {
+    margin: 0;
+    /* 배경 이미지는 기존 경로 유지 */
+    background: url('file:///C:/Users/KW/Desktop/웹페이지/samsung_lions_stadium.png') no-repeat center center fixed;
+    background-size: cover;
+    
+    font-family: 'Inter', 'Pretendard', sans-serif;
+    color: white;
+    text-align: center;
+    min-height: 100vh;
+  }
 
-        h1 {
-            color: var(--primary-color);
-            text-align: center;
-            border-bottom: 2px solid var(--border-color);
-            padding-bottom: 15px;
-            margin-top: 0;
-            font-size: 2em;
-        }
+  .container {
+    max-width: 900px;
+    margin: 0 auto; 
+    padding: 20px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+  }
 
-        /* 입력 폼 영역 스타일 */
-        #input-area {
-            background-color: var(--card-background);
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            margin-bottom: 30px; /* 출력 공간과 분리 */
-        }
+  .title-overlay {
+    font-size: 54px; 
+    font-weight: 700;
+    margin: 150px 0 25px 0;
+    text-shadow: 0 4px 10px rgba(0,0,0,0.7); 
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    z-index: 10;
+    font-family: 'Inter', sans-serif; 
+    color: #ffffff; 
+  }
+  
+  #logo {
+    display: none; 
+  }
 
-        h2 {
-            color: var(--primary-color);
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 5px;
-            margin-top: 0;
-        }
+  /* 검색 박스 */
+  .search-box {
+    position: relative;
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-bottom: 0;
+    z-index: 10;
+  }
 
-        .form-row {
-            display: flex;
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-        
-        .form-row > .form-group {
-             flex: 1;
-        }
+  input {
+    padding: 14px;
+    width: 300px;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.12);
+    color: white;
+    font-size: 16px;
+    backdrop-filter: blur(10px);
+  }
 
-        .form-group {
-            margin-bottom: 20px;
-        }
+  input::placeholder {
+    color: rgba(255,255,255,0.6);
+  }
 
-        label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: bold;
-            color: var(--text-color);
-        }
+  button {
+    padding: 14px 24px;
+    background: white;
+    color: #003cb3;
+    border: none;
+    font-weight: 700;
+    border-radius: 14px;
+    cursor: pointer;
+    transition: 0.2s;
+  }
 
-        input[type="text"],
-        input[type="date"],
-        input[type="time"],
-        textarea {
-            width: calc(100% - 20px);
-            padding: 10px;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            background-color: white;
-            color: var(--text-color);
-            font-size: 1em;
-            transition: border-color 0.3s;
-        }
+  button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.25);
+  }
 
-        input:focus, textarea:focus {
-            border-color: var(--primary-color);
-            outline: none;
-            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
-        }
+  /* 자동완성 리스트 */
+  #autocompleteList {
+    position: absolute;
+    top: 55px;
+    width: 300px;
+    background: rgba(255,255,255,0.12);
+    backdrop-filter: blur(12px);
+    border-radius: 12px;
+    overflow: hidden;
+    text-align: left;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.35);
+    display: none;
+    animation: fadeIn 0.15s ease-out;
+  }
 
-        /* 참석자 및 안건 추가 버튼 스타일 */
-        .add-button {
-            background-color: var(--secondary-color);
-            color: white;
-            border: none;
-            padding: 8px 15px;
-            border-radius: 4px;
-            cursor: pointer;
-            margin-left: 10px;
-            font-weight: bold;
-            transition: background-color 0.3s;
-        }
+  .autocomplete-item {
+    padding: 12px 16px;
+    cursor: pointer;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    transition: 0.2s;
+  }
 
-        .add-button:hover {
-            background-color: #1e7e34;
-        }
+  .autocomplete-item:hover {
+    background: rgba(0, 153, 255, 0.35);
+    border-left: 3px solid #4fd1ff;
+    padding-left: 20px;
+  }
 
-        #attendees-list, #agenda-list {
-            margin-top: 10px;
-            padding: 10px;
-            background-color: #e9ecef;
-            border-radius: 4px;
-            border: 1px solid var(--border-color);
-        }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
 
-        .list-item {
-            background-color: #ffffff;
-            color: var(--text-color);
-            padding: 5px 10px;
-            margin-bottom: 5px;
-            border-radius: 3px;
-            border: 1px solid #dee2e6;
-            display: inline-block;
-            margin-right: 5px;
-        }
-        
-        /* 등록 버튼 스타일 */
-        #register-btn {
-            width: 100%;
-            padding: 15px;
-            background-color: var(--primary-color);
-            color: white;
-            font-size: 1.1em;
-            font-weight: bold;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            margin-top: 20px;
-            transition: background-color 0.3s, transform 0.1s;
-        }
+  /* 선수 카드 (AI 결과 표시용으로 재사용) */
+  .player-card {
+    background: rgba(255,255,255,0.12);
+    backdrop-filter: blur(12px);
+    border-radius: 18px;
+    padding: 22px;
+    margin-top: 24px;
+    text-align: left;
+    color: white;
+    box-shadow: 0 10px 30px rgba(2,8,40,0.45);
+    max-width: 700px;
+    margin-left: auto;
+    margin-right: auto;
+    animation: fadeIn 0.25s ease-out;
+  }
 
-        #register-btn:hover {
-            background-color: #0056b3;
-        }
-        
-        #register-btn:disabled {
-            background-color: #cccccc;
-            cursor: not-allowed;
-        }
+  .player-card h2 {
+    margin: 0 0 8px;
+    font-size: 22px;
+  }
+  .player-card p {
+    font-size: 16px; 
+    line-height: 1.8; 
+    white-space: pre-wrap; 
+    margin: 0;
+  }
 
-        /* 상태/결과 영역 스타일 (아래에 넓게 배치) */
-        #output-area {
-            background-color: var(--card-background);
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        }
+  .player-row {
+    display:none; /* 기존 통계 로직 숨김 */
+  }
 
-        #output-area h2 {
-            color: var(--primary-color);
-        }
-
-        #status-message {
-            margin-top: 15px;
-            padding: 15px;
-            border-radius: 4px;
-            background-color: #fff3cd; /* 경고 색상 (기본) */
-            color: #856404;
-            font-weight: bold;
-            min-height: 20px;
-            border: 1px solid #ffeeba;
-        }
-
-        /* 복사하기 쉬운 넓은 출력 공간 */
-        #result-content {
-            white-space: pre-wrap;
-            background-color: #ffffff; /* 출력 공간은 순수 흰색 */
-            padding: 20px;
-            border-radius: 4px;
-            border: 2px solid #6c757d; /* 짙은 경계선 */
-            margin-top: 15px;
-            min-height: 400px; /* 넓은 높이 확보 */
-            overflow-y: auto;
-            font-family: Consolas, monospace;
-            font-size: 0.95em;
-            line-height: 1.5;
-            cursor: text; /* 텍스트 선택 가능하도록 */
-        }
-
-    </style>
+  hr.separator {
+    border:0;
+    border-top:1px solid rgba(255,255,255,0.08);
+    margin:12px 0;
+  }
+</style>
 </head>
+
 <body>
+<div class="container">
 
-    <div class="container">
-        <h1>📑 깔끔한 회의록 작성 및 전송 시스템</h1>
+  <h1 class="title-overlay">SAMSUNG LIONS AI 분석</h1>
 
-        <div id="input-area">
-            <h2>회의 정보 입력</h2>
-            
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="meeting-date">회의 일시</label>
-                    <input type="date" id="meeting-date" required>
-                </div>
-                <div class="form-group">
-                    <label for="meeting-location">회의 장소</label>
-                    <input type="text" id="meeting-location" placeholder="예: 광운대 새빛관 405호" required>
-                </div>
-            </div>
+  <div class="search-box">
+    <input id="playerInput" placeholder="선수 이름 입력 (예: 강민호) 후 엔터 또는 검색">
+    <button id="searchBtn">AI 분석</button>
 
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="start-time">회의 시작 시간</label>
-                    <input type="time" id="start-time" required>
-                </div>
-                <div class="form-group">
-                    <label for="end-time">회의 종료 시간</label>
-                    <input type="time" id="end-time" required>
-                </div>
-            </div>
+        <div id="autocompleteList"></div>
+  </div>
 
-            <div class="form-group">
-                <label for="attendee-input">회의 참석자</label>
-                <input type="text" id="attendee-input" placeholder="참석자 이름 입력">
-                <button type="button" class="add-button" onclick="addAttendee()">추가</button>
-                <div id="attendees-list"></div>
-            </div>
-
-            <div class="form-group">
-                <label for="agenda-input">회의 내용/안건</label>
-                <textarea id="agenda-input" rows="4" placeholder="안건 내용 및 결정 사항을 입력하세요."></textarea>
-                <button type="button" class="add-button" onclick="addAgenda()">안건 추가</button>
-                <div id="agenda-list"></div>
-            </div>
-
-            <button type="button" id="register-btn" onclick="register()">회의록 전송 및 AI 생성 요청</button>
-        </div>
-
-        <div id="output-area">
-            <h2>출력 결과 (Word 문서 복사용)</h2>
-            <div id="status-message">전송 버튼을 누르면 AI가 생성한 회의록이 이곳에 표시됩니다.</div>
-            
-            <p><strong>JSON 구성 데이터 (디버깅용):</strong></p>
-            <pre id="json-content" style="background-color: #f0f0f0; border: 1px dashed #aaa; padding: 15px; margin-bottom: 20px; overflow-x: auto; max-height: 200px;"></pre>
-
-            <p><strong>Word 문서 복사용 텍스트 (Ctrl+A, Ctrl+C로 전체 복사 가능):</strong></p>
-            <pre id="result-content" tabindex="0"></pre>
-        </div>
+  <div id="resultArea">
+    <div class="player-card" style="margin-top: 50px;">
+      <h2>사용법 안내</h2>
+      <hr class="separator">
+      <p>선수 이름을 입력하고 'AI 분석' 버튼을 누르면,<br>백엔드 서버를 통해 Gemini AI가 해당 선수에 대한 분석 결과를 여기에 표시합니다.</p>
     </div>
+  </div>
 
-    <script>
-        // 핵심 요구 사항 1: 로컬 백엔드 서버 주소 설정
-        const SERVER_URL = 'https://ec10965d-36db-488b-8826-bd040e7856a1-00-10dyavpsg24e6.pike.replit.dev/generate_minutes'; 
+</div>
 
-        let attendees = [];
-        let agendas = [];
+<script>
+// ============================================================
+// 1. 통신 규격 설정 (상수)
+// ============================================================
+// ※ Replit에서 실행 중인 백엔드 주소로 반드시 교체해야 합니다!
+const BACKEND_BASE_URL = "https://fdf9f955-569f-4fc2-8e75-6a26d6feaf49-00-214cplraun6q1.pike.replit.dev"; 
+const AI_URL = BACKEND_BASE_URL + "/ai";
 
-        function addAttendee() {
-            const input = document.getElementById('attendee-input');
-            const name = input.value.trim();
+// ============================================================
+// 2. 입력값 수집 및 AI 호출 함수
+// ============================================================
 
-            if (name && !attendees.includes(name)) {
-                attendees.push(name);
-                input.value = '';
-                renderAttendees();
-            } else if (name) {
-                alert('이미 존재하는 참석자입니다.');
-            }
-        }
+// [필수조건 1] 입력값 수집 함수
+function collectInputsFromPage() {
+    const inputElement = document.getElementById("playerInput");
+    return {
+        playerName: inputElement.value.trim() // 'playerName'이라는 키로 저장
+    };
+}
 
-        function renderAttendees() {
-            const listDiv = document.getElementById('attendees-list');
-            listDiv.innerHTML = attendees.map(att => 
-                `<span class="list-item">${att}</span>`
-            ).join('');
-        }
-
-        function addAgenda() {
-            const input = document.getElementById('agenda-input');
-            const content = input.value.trim();
-
-            if (content) {
-                agendas.push(content);
-                input.value = '';
-                renderAgendas();
-            }
-        }
-
-        function renderAgendas() {
-            const listDiv = document.getElementById('agenda-list');
-            // 안건 목록을 간단하게 표시
-            listDiv.innerHTML = agendas.map((agenda, index) => 
-                `<span class="list-item">안건 ${index + 1} (${agenda.substring(0, 15)}...)</span>`
-            ).join('');
-        }
-
-        /**
-         * 회의록 데이터를 수집하여 서버로 전송하고, 출력 공간에 복사하기 좋은 형태로 출력합니다.
-         */
-        async function register() {
-            const date = document.getElementById('meeting-date').value;
-            const startTime = document.getElementById('start-time').value;
-            const endTime = document.getElementById('end-time').value;
-            const location = document.getElementById('meeting-location').value;
-            const statusMessage = document.getElementById('status-message');
-            const jsonContent = document.getElementById('json-content');
-            const resultContent = document.getElementById('result-content');
-            const registerBtn = document.getElementById('register-btn');
-
-            // 필수 입력 필드 확인
-            if (!date || !startTime || !endTime || !location || attendees.length === 0 || agendas.length === 0) {
-                statusMessage.textContent = '오류: 모든 필수 정보를 입력하고 참석자 및 안건을 추가해야 합니다.';
-                statusMessage.style.backgroundColor = '#f8d7da';
-                statusMessage.style.color = '#721c24';
-                return;
-            }
-
-            // 버튼 비활성화 (중복 요청 방지)
-            registerBtn.disabled = true;
-            registerBtn.textContent = "⏳ AI가 회의록을 작성 중입니다...";
-            statusMessage.textContent = "서버와 통신 중입니다...";
-            statusMessage.style.backgroundColor = '#fff3cd';
-            statusMessage.style.color = '#856404';
-
-            // =========================================================================
-            // 1. Word 문서 복사용 텍스트 구성 (기본 정보)
-            // =========================================================================
-            const baseText = createWordDocumentText(date, startTime, endTime, location, attendees, agendas);
-            resultContent.textContent = baseText + "\n\n... ⏳ AI가 회의록을 분석하고 있습니다. 잠시만 기다려주세요 ..."; // 로딩 표시 추가
-
-            // =========================================================================
-            // 2. API 전송용 데이터 구성 (백엔드 포맷에 맞춤)
-            // =========================================================================
-            // 백엔드의 MeetingData 모델은 title, participants, content를 요구합니다.
-            const backendPayload = {
-                title: `${date} ${location} 회의`,
-                participants: attendees,
-                // 프론트에서 정리한 깔끔한 텍스트를 AI에게 '내용'으로 전달합니다.
-                content: baseText 
-            };
-
-            // 디버깅용 JSON 출력
-            jsonContent.textContent = JSON.stringify(backendPayload, null, 2);
-
-            // =========================================================================
-            // 3. fetch 함수를 이용한 POST 통신 로직
-            // =========================================================================
-            try {
-                // 3초 타임아웃은 너무 짧을 수 있으니 기본 fetch 사용 (Gemini는 가끔 5~10초 걸림)
-                const response = await fetch(SERVER_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(backendPayload), 
-                });
-
-                if (!response.ok) {
-                    throw new Error(`서버 오류! 상태 코드: ${response.status}`);
-                }
-
-                const aiData = await response.json();
-                
-                // 성공 메시지 표시
-                statusMessage.textContent = '🎉 AI 회의록 생성 완료! 아래 내용을 확인하세요.';
-                statusMessage.style.backgroundColor = '#d4edda';
-                statusMessage.style.color = '#155724';
-
-                // =========================================================================
-                // 4. AI 응답 결과를 Word 텍스트에 추가
-                // =========================================================================
-                let finalText = baseText;
-                
-                finalText += "\n\n========================================================\n";
-                finalText += "                 [AI 생성 결과]                 \n";
-                finalText += "========================================================\n\n";
-                
-                finalText += "📌 3줄 요약\n";
-                finalText += "--------------------------------------------------------\n";
-                finalText += `${aiData.summary}\n\n`;
-
-                if (aiData.decisions && aiData.decisions.length > 0) {
-                    finalText += "✅ 결정된 사항 (AI 추출)\n";
-                    finalText += "--------------------------------------------------------\n";
-                    aiData.decisions.forEach(item => {
-                        finalText += `- ${item}\n`;
-                    });
-                    finalText += "\n";
-                }
-
-                if (aiData.action_items && aiData.action_items.length > 0) {
-                    finalText += "⚡ Action Items (할 일)\n";
-                    finalText += "--------------------------------------------------------\n";
-                    aiData.action_items.forEach(item => {
-                        finalText += `- [${item.assignee}] ${item.task} (~${item.due_date})\n`;
-                    });
-                    finalText += "\n";
-                }
-
-                if (aiData.dialogue_script && aiData.dialogue_script.length > 0) {
-                    finalText += "💬 대화 시나리오 재구성\n";
-                    finalText += "--------------------------------------------------------\n";
-                    aiData.dialogue_script.forEach(chat => {
-                        finalText += `${chat.speaker}: ${chat.text}\n`;
-                    });
-                }
-
-                // 최종 결과를 화면에 업데이트
-                resultContent.textContent = finalText;
-                resultContent.focus(); // 바로 복사할 수 있게 포커스
-
-            } catch (error) {
-                console.error('API 통신 오류:', error);
-                // 에러 발생 시 결과창에도 확실히 표시
-                resultContent.textContent = baseText + `\n\n❌ 오류 발생: ${error.message}\n(백엔드 서버 'main.py'가 실행 중인지 확인하세요. 터미널에 에러 로그가 있는지 보세요.)`;
-                
-                statusMessage.textContent = `❌ 통신 실패: ${error.message}`;
-                statusMessage.style.backgroundColor = '#f8d7da';
-                statusMessage.style.color = '#721c24';
-            } finally {
-                // 버튼 상태 복구
-                registerBtn.disabled = false;
-                registerBtn.textContent = "회의록 전송 및 AI 생성 요청";
-            }
-        }
-
-        /**
-         * 시작 시간과 종료 시간의 차이를 계산하여 반환합니다.
-         */
-        function calculateDuration(start, end) {
-            const startParts = start.split(':').map(Number);
-            const endParts = end.split(':').map(Number);
-
-            const startMinutes = startParts[0] * 60 + startParts[1];
-            const endMinutes = endParts[0] * 60 + endParts[1];
-
-            let diffMinutes = endMinutes - startMinutes;
-            if (diffMinutes < 0) {
-                 diffMinutes += 24 * 60;
-            }
-
-            const hours = Math.floor(diffMinutes / 60);
-            const minutes = diffMinutes % 60;
-
-            return `${hours}시간 ${minutes}분`;
-        }
-
-        /**
-         * Word 문서에 복사하기 좋은 형식의 텍스트를 생성합니다.
-         */
-        function createWordDocumentText(date, start, end, location, attendees, agendas) {
-            let text = "";
-            text += "========================================================\n";
-            text += "                 회의록 (Meeting Minutes)               \n";
-            text += "========================================================\n\n";
-
-            text += "1. 회의 개요\n";
-            text += "--------------------------------------------------------\n";
-            text += `* 일시: ${date} \n`;
-            text += `* 시간: ${start} ~ ${end} (${calculateDuration(start, end)})\n`;
-            text += `* 장소: ${location}\n`;
-            text += `* 참석자: ${attendees.join(', ')}\n\n`;
-
-            text += "2. 회의 안건 (Raw Data)\n";
-            text += "--------------------------------------------------------\n";
-            
-            agendas.forEach((agenda, index) => {
-                text += `\n[안건 ${index + 1}]\n`;
-                text += `  - 내용: ${agenda}\n`;
-            });
-            
-            text += "\n========================================================\n";
-            text += "작성일: " + new Date().toLocaleDateString('ko-KR');
-
-            return text;
-        }
-
-        // 초기 렌더링 및 기본값 설정
-        document.addEventListener('DOMContentLoaded', () => {
-            renderAttendees();
-            renderAgendas();
-            
-            const now = new Date();
-            const dateStr = now.toISOString().substring(0, 10);
-            document.getElementById('meeting-date').value = dateStr;
-
-            document.getElementById('start-time').value = '10:00';
-            document.getElementById('end-time').value = '11:30';
+// [필수조건: 통신 함수] 백엔드와 fetch 통신
+async function callAI(inputs) {
+    try {
+        const response = await fetch(AI_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ inputs: inputs })
         });
 
-    </script>
+        if (!response.ok) {
+            throw new Error(`서버 응답 오류: ${response.status}`);
+        }
+
+        const data = await response.json();
+        return data.answer; // 규격대로 answer 문자열 반환
+
+    } catch (error) {
+        console.error("AI 호출 중 에러:", error);
+        return `[통신 오류] 서버와 연결할 수 없습니다. (${error.message})`;
+    }
+}
+
+// [필수조건 2, 3] 버튼 클릭 핸들러 (실행 -> 출력)
+async function onRunAIButtonClicked() {
+    const resultArea = document.getElementById("resultArea");
+    const inputs = collectInputsFromPage();
+
+    // 입력값이 없을 경우 처리
+    if (!inputs.playerName) {
+        alert("선수 이름을 입력해주세요.");
+        return;
+    }
+
+    // 로딩 화면 표시 (기존 스타일 활용)
+    resultArea.innerHTML = `
+      <div class="player-card">
+        <h2>AI 분석 중...</h2>
+        <hr class="separator">
+        <p>선수 '${inputs.playerName}'에 대한 데이터를 분석하고 있습니다...</p>
+      </div>
+    `;
+
+    // AI 함수 호출
+    const answer = await callAI(inputs);
+
+    // 결과 화면 표시
+    const title = answer.includes("오류") ? "분석 오류" : `AI 분석 결과: ${inputs.playerName}`;
+    resultArea.innerHTML = `
+      <div class="player-card">
+        <h2>${title}</h2>
+        <hr class="separator">
+        <p>${answer}</p>
+      </div>
+    `;
+}
+
+// ============================================================
+// 3. 이벤트 바인딩
+// ============================================================
+
+// 버튼 클릭 시 실행
+document.getElementById("searchBtn").addEventListener("click", onRunAIButtonClicked);
+
+// 엔터키 입력 시 실행
+document.getElementById("playerInput").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+        e.preventDefault(); // 기본 폼 제출 방지
+        onRunAIButtonClicked();
+    }
+});
+
+
+// ============================================================
+// 4. 기존 기능 유지 (자동완성 등)
+// ============================================================
+const playerDB = {
+  "강민호": {name:"강민호"}, "디아즈": {name:"디아즈"}, "이재현": {name:"이재현"},
+  "김영웅": {name:"김영웅"}, "류지혁": {name:"류지혁"}, "양도근": {name:"양도근"},
+  "구자욱": {name:"구자욱"}, "김성윤": {name:"김성윤"}, "김지찬": {name:"김지찬"},
+  "박승규": {name:"박승규"}, "김헌곤": {name:"김헌곤"}, "최형우": {name:"최형우"},
+  "후라도": {name:"후라도"}, "원태인": {name:"원태인"}, "최원태": {name:"최원태"},
+  "김태훈": {name:"김태훈"}, "양창섭": {name:"양창섭"}, "김재윤": {name:"김재윤"},
+  "이호성": {name:"이호성"}, "이승현": {name:"이승현"}, "이승민": {name:"이승민"},
+  "배찬승": {name:"배찬승"}, "백정현": {name:"백정현"}
+};
+
+const input = document.getElementById("playerInput");
+const autoList = document.getElementById("autocompleteList");
+
+input.addEventListener("input", () => {
+  const keyword = input.value.trim();
+  autoList.innerHTML = "";
+
+  if (!keyword) {
+    autoList.style.display = "none";
+    return;
+  }
+
+  const matches = Object.keys(playerDB).filter(name => name.includes(keyword));
+  if (matches.length === 0) {
+    autoList.style.display = "none";
+    return;
+  }
+
+  matches.forEach(name => {
+    const item = document.createElement("div");
+    item.className = "autocomplete-item";
+    item.textContent = name;
+    item.onclick = () => {
+      input.value = name;
+      autoList.style.display = "none";
+      // 자동완성 클릭 시에도 바로 검색 실행
+      onRunAIButtonClicked();
+    };
+    autoList.appendChild(item);
+  });
+  autoList.style.display = "block";
+});
+
+document.addEventListener("click", (e) => {
+  if (!e.target.closest(".search-box")) {
+    autoList.style.display = "none";
+  }
+});
+</script>
+
 </body>
 </html>
-
