@@ -1,340 +1,534 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8" />
-<title>삼성 라이온즈 선수 검색 (AI 서비스)</title>
-
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Pretendard:wght@300;400;600;700&display=swap" rel="stylesheet">
-
-<style>
-  body {
-    margin: 0;
-    /* [수정] 배경 이미지가 로딩 안 될 경우를 대비해 '진한 파란색'을 배경으로 깝니다.
-       이렇게 하면 이미지가 없어도 흰색 글씨가 선명하게 보입니다. 
-    */
-    background-color: #074CA1; 
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Emotion Analyzer - Gemini API</title>
     
-    /* 원래 설정하신 배경 이미지 경로 유지 */
-    background-image: url('file:///C:/Users/KW/Desktop/웹페이지/samsung_lions_stadium.png');
-    background-repeat: no-repeat;
-    background-position: center center;
-    background-attachment: fixed;
-    background-size: cover;
-    
-    font-family: 'Inter', 'Pretendard', sans-serif;
-    color: white;
-    text-align: center;
-    min-height: 100vh;
-  }
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
 
-  .container {
-    max-width: 900px;
-    margin: 0 auto; 
-    padding: 20px;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
-    align-items: center;
-  }
-
-  .title-overlay {
-    font-size: 54px; 
-    font-weight: 700;
-    margin: 150px 0 25px 0;
-    text-shadow: 0 4px 10px rgba(0,0,0,0.7); 
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    z-index: 10;
-    font-family: 'Inter', sans-serif; 
-    color: #ffffff; 
-  }
-  
-  #logo {
-    display: none; 
-  }
-
-  /* 검색 박스 */
-  .search-box {
-    position: relative;
-    display: flex;
-    gap: 12px;
-    justify-content: center;
-    margin-bottom: 0;
-    /* [수정] 검색창이 제목이나 다른 것에 가려지지 않도록 순서를 높였습니다 */
-    z-index: 999; 
-  }
-
-  /* [원상복구] 원래 주셨던 디자인 그대로 복원 */
-  input {
-    padding: 14px;
-    width: 300px;
-    border-radius: 14px;
-    border: 1px solid rgba(255,255,255,0.2);
-    background: rgba(255,255,255,0.12);
-    color: white;
-    font-size: 16px;
-    backdrop-filter: blur(10px);
-  }
-
-  input::placeholder {
-    color: rgba(255,255,255,0.6);
-  }
-
-  button {
-    padding: 14px 24px;
-    background: white;
-    color: #003cb3;
-    border: none;
-    font-weight: 700;
-    border-radius: 14px;
-    cursor: pointer;
-    transition: 0.2s;
-  }
-
-  button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(0,0,0,0.25);
-  }
-
-  /* 자동완성 리스트 */
-  #autocompleteList {
-    position: absolute;
-    top: 55px;
-    width: 300px;
-    background: rgba(255,255,255,0.12);
-    backdrop-filter: blur(12px);
-    border-radius: 12px;
-    overflow: hidden;
-    text-align: left;
-    box-shadow: 0 8px 25px rgba(0,0,0,0.35);
-    display: none;
-    animation: fadeIn 0.15s ease-out;
-  }
-
-  .autocomplete-item {
-    padding: 12px 16px;
-    cursor: pointer;
-    border-bottom: 1px solid rgba(255,255,255,0.08);
-    transition: 0.2s;
-  }
-
-  .autocomplete-item:hover {
-    background: rgba(0, 153, 255, 0.35);
-    border-left: 3px solid #4fd1ff;
-    padding-left: 20px;
-  }
-
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-4px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  /* 선수 카드 (AI 결과 표시용) */
-  .player-card {
-    background: rgba(255,255,255,0.12);
-    backdrop-filter: blur(12px);
-    border-radius: 18px;
-    padding: 22px;
-    margin-top: 24px;
-    text-align: left;
-    color: white;
-    box-shadow: 0 10px 30px rgba(2,8,40,0.45);
-    max-width: 700px;
-    margin-left: auto;
-    margin-right: auto;
-    animation: fadeIn 0.25s ease-out;
-  }
-
-  .player-card h2 {
-    margin: 0 0 8px;
-    font-size: 22px;
-  }
-  .player-card p {
-    font-size: 16px; 
-    line-height: 1.8; 
-    white-space: pre-wrap; 
-    margin: 0;
-  }
-
-  .player-row {
-    display:none; 
-  }
-
-  hr.separator {
-    border:0;
-    border-top:1px solid rgba(255,255,255,0.08);
-    margin:12px 0;
-  }
-</style>
-</head>
-
-<body>
-<div class="container">
-
-  <h1 class="title-overlay">SAMSUNG LIONS AI 분석</h1>
-
-  <div class="search-box">
-    <input id="playerInput" placeholder="선수 이름 입력 (예: 강민호) 후 엔터 또는 검색">
-    <button id="searchBtn">AI 분석</button>
-
-        <div id="autocompleteList"></div>
-  </div>
-
-  <div id="resultArea">
-    <div class="player-card" style="margin-top: 50px;">
-      <h2>사용법 안내</h2>
-      <hr class="separator">
-      <p>선수 이름을 입력하고 'AI 분석' 버튼을 누르면,<br>백엔드 서버를 통해 Gemini AI가 해당 선수에 대한 분석 결과를 여기에 표시합니다.</p>
-    </div>
-  </div>
-
-</div>
-
-<script>
-// ============================================================
-// 1. 통신 규격 설정 (상수)
-// ============================================================
-// ※ Replit의 Webview 주소가 바뀌었다면 여기를 꼭 수정해주세요!
-const BACKEND_BASE_URL = "https://e37e563b-0b2a-4497-9338-611d4a6118d7-00-1unbj00beh2mg.pike.replit.dev"; 
-const AI_URL = BACKEND_BASE_URL + "/ai";
-
-// ============================================================
-// 2. 입력값 수집 및 AI 호출 함수
-// ============================================================
-
-// [필수조건 1] 입력값 수집 함수
-function collectInputsFromPage() {
-    const inputElement = document.getElementById("playerInput");
-    return {
-        playerName: inputElement.value.trim() // 'playerName'이라는 키로 저장
-    };
-}
-
-// [필수조건: 통신 함수] 백엔드와 fetch 통신
-async function callAI(inputs) {
-    try {
-        const response = await fetch(AI_URL, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ inputs: inputs })
-        });
-
-        if (!response.ok) {
-            throw new Error(`서버 응답 오류: ${response.status}`);
+    <style>
+        /* Modern Sports Broadcast Style - "Emotion Scoreboard" Theme */
+        :root {
+            --color-dark-bg: #FFF7F2;      /* 전체 배경 – 밝은 크림색 */
+            --color-card-bg: #FFFFFF;      /* 카드 – 순백색 */
+            --color-accent-blue: #FF8BA7;  /* 포인트 – 말랑한 핑크 */
+            --color-text-light: #333333;   /* 기본 글자 – 진한 회색 */
+            --color-text-secondary: #888888;
+            --color-success: #7BC89A;      /* 미션 강조 – 연한 그린 */
+            --color-error: #FF6978;        /* 경고 – 살구핑크 */
+            --color-soft-yellow: #FFE8A3;   /* 버튼용 연노랑 */
+            --color-soft-yellow-hover: #FFD66B;
+            --font-main: "Pretendard", "Roboto", system-ui, -apple-system, "Segoe UI", sans-serif;
         }
 
-        const data = await response.json();
-        return data.answer; 
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: var(--font-main);
+        }
 
-    } catch (error) {
-        console.error("AI 호출 중 에러:", error);
-        return `[통신 오류] 서버와 연결할 수 없습니다. (${error.message})`;
-    }
-}
+        body {
+            background-color: var(--color-dark-bg);
+            color: var(--color-text-light);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 40px 16px;
+        }
 
-// [필수조건 2, 3] 버튼 클릭 핸들러 (실행 -> 출력)
-async function onRunAIButtonClicked() {
-    const resultArea = document.getElementById("resultArea");
-    const inputs = collectInputsFromPage();
+        .container {
+            width: 100%;
+            max-width: 920px;
+            padding: 28px;
+            background: rgba(255,255,255,0.55);
+            border: 1px solid rgba(255,139,167,0.35);
+            box-shadow: 0 18px 50px rgba(0,0,0,0.10);
+            border-radius: 18px;
+            backdrop-filter: blur(6px);
+        }
 
-    // 입력값이 없을 경우 처리
-    if (!inputs.playerName) {
-        alert("선수 이름을 입력해주세요.");
-        return;
-    }
+        h1 {
+            text-align: center;
+            color: var(--color-accent-blue);
+            font-size: 2.1em;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            margin-bottom: 22px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid rgba(255,139,167,0.65);
+        }
 
-    // 로딩 화면 표시
-    resultArea.innerHTML = `
-      <div class="player-card">
-        <h2>AI 분석 중...</h2>
-        <hr class="separator">
-        <p>선수 '${inputs.playerName}'에 대한 데이터를 분석하고 있습니다...</p>
-      </div>
-    `;
+        section {
+            background-color: var(--color-card-bg);
+            padding: 18px 20px;
+            margin-bottom: 18px;
+            border-radius: 16px;
+            box-shadow: 0 10px 24px rgba(0,0,0,0.06);
+            border: 1px solid rgba(0,0,0,0.05);
+        }
 
-    // AI 함수 호출
-    const answer = await callAI(inputs);
+        h2 {
+            color: #222;
+            margin-bottom: 14px;
+            font-size: 1.35em;
+            font-weight: 700;
+            border-bottom: 1px dashed rgba(0,0,0,0.15);
+            padding-bottom: 8px;
+        }
 
-    // 결과 화면 표시
-    const title = answer.includes("오류") ? "분석 오류" : `AI 분석 결과: ${inputs.playerName}`;
-    resultArea.innerHTML = `
-      <div class="player-card">
-        <h2>${title}</h2>
-        <hr class="separator">
-        <p>${answer}</p>
-      </div>
-    `;
-}
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: var(--color-text-secondary);
+        }
 
-// ============================================================
-// 3. 이벤트 바인딩
-// ============================================================
+        textarea {
+            width: 100%;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid var(--color-accent-blue);
+            border-radius: 10px;
+            background-color: #FFFFFF;
+            color: #222222;
+            resize: vertical;
+            min-height: 150px;
+            font-size: 1em;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
 
-// 버튼 클릭 시 실행
-document.getElementById("searchBtn").addEventListener("click", onRunAIButtonClicked);
+        textarea:focus {
+            outline: none;
+            border-color: var(--color-success);
+            box-shadow: 0 0 8px rgba(77, 255, 185, 0.5);
+        }
 
-// 엔터키 입력 시 실행
-document.getElementById("playerInput").addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-        e.preventDefault(); 
-        onRunAIButtonClicked();
-    }
-});
+        .emotion-selection {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
 
+        .emotion-btn {
+            background: #fff;
+            border: 1px solid rgba(0,0,0,0.12);
+            color: #222;
+            padding: 10px 14px;
+            font-size: 1.05em;
+            border-radius: 999px;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
 
-// ============================================================
-// 4. 기존 기능 유지 (자동완성 등)
-// ============================================================
-const playerDB = {
-  "강민호": {name:"강민호"}, "디아즈": {name:"디아즈"}, "이재현": {name:"이재현"},
-  "김영웅": {name:"김영웅"}, "류지혁": {name:"류지혁"}, "양도근": {name:"양도근"},
-  "구자욱": {name:"구자욱"}, "김성윤": {name:"김성윤"}, "김지찬": {name:"김지찬"},
-  "박승규": {name:"박승규"}, "김헌곤": {name:"김헌곤"}, "최형우": {name:"최형우"},
-  "후라도": {name:"후라도"}, "원태인": {name:"원태인"}, "최원태": {name:"최원태"},
-  "김태훈": {name:"김태훈"}, "양창섭": {name:"양창섭"}, "김재윤": {name:"김재윤"},
-  "이호성": {name:"이호성"}, "이승현": {name:"이승현"}, "이승민": {name:"이승민"},
-  "배찬승": {name:"배찬승"}, "백정현": {name:"백정현"}
-};
+        .emotion-btn:hover {
+            border-color: rgba(255,139,167,0.7);
+            transform: translateY(-1px);
+        }
 
-const input = document.getElementById("playerInput");
-const autoList = document.getElementById("autocompleteList");
+        .emotion-btn.selected {
+            border-color: var(--color-accent-blue);
+            background: rgba(255,139,167,0.12);
+            box-shadow: 0 8px 18px rgba(255,139,167,0.22);
+            transform: translateY(-1px);
+            font-weight: bold;
+        }
 
-input.addEventListener("input", () => {
-  const keyword = input.value.trim();
-  autoList.innerHTML = "";
+        .control-buttons {
+            display: flex;
+            justify-content: space-between;
+            gap: 15px;
+            padding: 10px;
+            background-color: var(--color-card-bg);
+            border-top: 2px solid var(--color-accent-blue);
+            margin-top: 20px;
+            border-radius: 0 0 12px 12px;
+        }
 
-  if (!keyword) {
-    autoList.style.display = "none";
-    return;
-  }
+        button {
+            padding: 12px 18px;
+            font-size: 1.05em;
+            font-weight: 700;
+            border: none;
+            border-radius: 14px;
+            cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.2s, background-color 0.2s;
+        }
 
-  const matches = Object.keys(playerDB).filter(name => name.includes(keyword));
-  if (matches.length === 0) {
-    autoList.style.display = "none";
-    return;
-  }
+        .btn-start {
+            background-color: var(--color-accent-blue);
+            color: #fff;
+            box-shadow: 0 12px 24px rgba(255,139,167,0.28);
+        }
 
-  matches.forEach(name => {
-    const item = document.createElement("div");
-    item.className = "autocomplete-item";
-    item.textContent = name;
-    item.onclick = () => {
-      input.value = name;
-      autoList.style.display = "none";
-      onRunAIButtonClicked();
-    };
-    autoList.appendChild(item);
-  });
-  autoList.style.display = "block";
-});
+        .btn-start:hover {
+            transform: translateY(-2px);
+        }
 
-document.addEventListener("click", (e) => {
-  if (!e.target.closest(".search-box")) {
-    autoList.style.display = "none";
-  }
-});
-</script>
+        .btn-reset, .btn-history {
+            background-color: var(--color-soft-yellow);
+            color: #5a4a00;
+            box-shadow: 0 10px 22px rgba(255,214,107,0.25);
+        }
+
+        .btn-reset:hover, .btn-history:hover {
+            background-color: var(--color-soft-yellow-hover);
+            transform: translateY(-2px);
+        }
+
+        /* --- Result Area --- */
+        #result-area {
+            display: none;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .analysis-box {
+            background-color: #FFFFFF;
+            padding: 15px;
+            border-radius: 12px;
+            border: 1px solid #EDEDED;
+        }
+
+        .analysis-box h3 {
+            font-size: 1.2em;
+            color: var(--color-accent-blue);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+
+        .summary-display {
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #333;
+            display: block;
+            margin-top: 5px;
+        }
+
+        .emotion-tag {
+            display: inline-block;
+            font-size: 1.5em;
+            margin-right: 10px;
+        }
+
+        #mission-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .mission-item {
+            background-color: var(--color-card-bg);
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 5px solid var(--color-success);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Loading Spinner */
+        .loading-spinner {
+            border: 4px solid var(--color-card-bg);
+            border-top: 4px solid var(--color-accent-blue);
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+            display: none;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* History */
+        #history-section { display: none; }
+        #history-view { display: flex; flex-direction: column; gap: 15px; }
+        
+        .history-entry {
+            background-color: #FFFFFF;
+            padding: 15px;
+            border-radius: 12px;
+            border-left: 3px solid var(--color-accent-blue);
+            border: 1px solid #EFEFEF;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Gemini Daily Emotion Scoreboard</h1>
+        
+        <div id="status-result-area">
+            
+            <section id="input-section">
+                <h2>📝 Today's Report</h2>
+                <form id="daily-report-form">
+                    <label for="daily-log">오늘 있었던 일 (Today's Log)</label>
+                    <textarea id="daily-log" placeholder="오늘 하루 있었던 일, 느낀 감정 등을 자유롭게 적어주세요." required></textarea>
+
+                    <label>오늘 기분 선택 (Select Emotion)</label>
+                    <div class="emotion-selection">
+                        <button type="button" class="emotion-btn" data-emotion="😊">😊 행복</button>
+                        <button type="button" class="emotion-btn" data-emotion="😢">😢 슬픔</button>
+                        <button type="button" class="emotion-btn" data-emotion="😡">😡 분노</button>
+                        <button type="button" class="emotion-btn" data-emotion="😰">😰 불안</button>
+                        <button type="button" class="emotion-btn" data-emotion="😴">😴 피곤</button>
+                    </div>
+                </form>
+            </section>
+
+            <div class="loading-spinner" id="loading-indicator"></div>
+
+            <section id="result-area">
+                <h2>✅ Gemini Analysis Result</h2>
+
+                <div class="analysis-box">
+                    <h3>오늘의 감정 요약</h3>
+                    <div id="result-emotion-container">
+                        </div>
+                </div>
+
+                <div class="analysis-box">
+                    <h3>주요 고민/주제</h3>
+                    <p id="result-topic" style="font-size: 1.1em; color: #444;"></p>
+                </div>
+
+                <div class="analysis-box">
+                    <h3>내일을 위한 미션</h3>
+                    <ul id="mission-list">
+                        </ul>
+                </div>
+            </section>
+
+            <section id="history-section">
+                <h2>⏱️ Past Records</h2>
+                <div id="history-view"></div>
+            </section>
+
+        </div>
+        
+        <div class="control-buttons">
+            <button class="btn-history" onclick="toggleHistoryView()">
+                <span id="history-btn-text">지난 기록 보기</span>
+            </button>
+            <button class="btn-reset" onclick="resetApp()">초기화</button>
+            <button class="btn-start" onclick="register()" id="start-analysis-btn">✨ Gemini 분석 호출</button>
+        </div>
+
+    </div>
+
+    <script>
+        // ✅ 교수님의 Replit 주소 (뒤에 빗금이나 :8000 없음)
+        const SERVER_URL = "https://e37e563b-0b2a-4497-9338-611d4a6118d7-00-1unbj00beh2mg.pike.replit.dev";
+
+        const dailyLogInput = document.getElementById('daily-log');
+        const emotionButtons = document.querySelectorAll('.emotion-btn');
+        const resultArea = document.getElementById('result-area');
+        const historySection = document.getElementById('history-section');
+        const historyView = document.getElementById('history-view');
+        const historyBtn = document.getElementById('history-btn-text');
+        const startAnalysisBtn = document.getElementById('start-analysis-btn');
+        const loadingIndicator = document.getElementById('loading-indicator');
+        
+        let selectedEmotion = null;
+
+        emotionButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                emotionButtons.forEach(btn => btn.classList.remove('selected'));
+                button.classList.add('selected');
+                selectedEmotion = button.getAttribute('data-emotion');
+            });
+        });
+
+        async function register() {
+            const dailyLog = dailyLogInput.value.trim();
+            const dateKey = new Date().toISOString().split('T')[0];
+
+            if (!dailyLog || !selectedEmotion) {
+                alert('🚨 오늘 있었던 일과 기분을 모두 선택해 주세요.');
+                return;
+            }
+
+            startAnalysisBtn.disabled = true;
+            startAnalysisBtn.textContent = '분석 중...';
+            loadingIndicator.style.display = 'block';
+            resultArea.style.display = 'none';
+
+            const payload = {
+                date: dateKey,
+                log: dailyLog,
+                emotion: selectedEmotion
+            };
+            
+            console.log('Sending payload:', payload);
+
+            try {
+                // 1. 서버 통신
+                const response = await fetch(`${SERVER_URL}/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload) 
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                // 2. 결과 데이터 받기
+                const result = await response.json();
+                console.log("서버 응답:", result);
+                
+                // 3. 화면 업데이트 (여기서 에러가 나지 않도록 수정함)
+                updateResultArea(result);
+                saveRecord(payload, result);
+
+            } catch (error) {
+                console.error('에러 발생:', error);
+                alert("서버 연결에 실패했습니다. (임시 데이터가 표시됩니다)");
+                
+                // 에러 시 가짜 데이터 보여주기
+                const mockResult = generateMockResult(dailyLog, selectedEmotion);
+                updateResultArea(mockResult);
+            } finally {
+                startAnalysisBtn.disabled = false;
+                startAnalysisBtn.textContent = '✨ Gemini 분석 호출';
+                loadingIndicator.style.display = 'none';
+                resultArea.style.display = 'flex';
+                
+                // 입력창 초기화는 사용자 편의를 위해 주석 처리 (원하시면 주석 해제)
+                // dailyLogInput.value = '';
+            }
+        }
+
+        // ✅ [수정 3] 에러(null)가 절대 나지 않는 안전한 방식의 업데이트 함수
+        function updateResultArea(result) {
+            // 1. 감정 및 요약 박스 (통째로 교체)
+            const emotionContainer = document.getElementById('result-emotion-container');
+            if (emotionContainer) {
+                emotionContainer.innerHTML = `
+                    <div style="display: flex; align-items: center; margin-bottom: 5px;">
+                        <span class="emotion-tag">${result.emotionTag}</span>
+                        <span style="font-size: 1.2em; font-weight: bold; color: #7BC89A;">${result.summary}</span>
+                    </div>
+                    <div style="font-size: 1em; color: #555; line-height: 1.4;">
+                        "${result.oneLineSummary}"
+                    </div>
+                `;
+            }
+
+            // 2. 핵심 주제
+            const topicElement = document.getElementById('result-topic');
+            if (topicElement) {
+                topicElement.textContent = result.keyTopic;
+            }
+            
+            // 3. 미션 리스트
+            const missionList = document.getElementById('mission-list');
+            if (missionList) {
+                missionList.innerHTML = '';
+                // 배열인지 확인 후 처리 (안전장치)
+                const missions = Array.isArray(result.missions) ? result.missions : ["미션을 불러오지 못했습니다."];
+                
+                missions.forEach(mission => {
+                    const li = document.createElement('li');
+                    li.className = 'mission-item';
+                    li.textContent = mission;
+                    missionList.appendChild(li);
+                });
+            }
+        }
+        
+        function saveRecord(input, result) {
+            const records = JSON.parse(localStorage.getItem('dailyRecords') || '{}');
+            const newRecord = {
+                input: input,
+                result: result,
+                timestamp: new Date().toLocaleString()
+            };
+            records[input.date] = newRecord;
+            localStorage.setItem('dailyRecords', JSON.stringify(records));
+        }
+        
+        function toggleHistoryView() {
+            const isHidden = historySection.style.display === 'none' || historySection.style.display === '';
+            if (isHidden) {
+                loadHistory();
+                historySection.style.display = 'block';
+                document.getElementById('input-section').style.display = 'none';
+                resultArea.style.display = 'none';
+                historyBtn.textContent = '기록 숨기기';
+            } else {
+                historySection.style.display = 'none';
+                document.getElementById('input-section').style.display = 'block';
+                if (resultArea.innerHTML.trim() !== "") {
+                    resultArea.style.display = 'flex';
+                }
+                historyBtn.textContent = '지난 기록 보기';
+            }
+        }
+
+        function loadHistory() {
+            const records = JSON.parse(localStorage.getItem('dailyRecords') || '{}');
+            const dates = Object.keys(records).sort().reverse();
+            historyView.innerHTML = '';
+
+            if (dates.length === 0) {
+                historyView.innerHTML = '<p style="text-align: center; color: #888;">저장된 기록이 없습니다.</p>';
+                return;
+            }
+
+            dates.forEach(date => {
+                const record = records[date];
+                const entry = document.createElement('div');
+                entry.className = 'history-entry';
+                entry.innerHTML = `
+                    <strong>🗓️ ${date} (${record.input.emotion})</strong>
+                    <p style="margin-bottom: 5px; font-weight: bold;">${record.result.summary}</p>
+                    <p style="font-size: 0.9em; color: #666;">${record.result.oneLineSummary}</p>
+                    <details style="margin-top: 8px;">
+                        <summary style="cursor: pointer; color: #7BC89A;">상세 보기</summary>
+                        <p style="margin-top:5px;"><strong>원문:</strong> ${record.input.log}</p>
+                        <p><strong>미션:</strong> ${record.result.missions.join(' | ')}</p>
+                    </details>
+                `;
+                historyView.appendChild(entry);
+            });
+        }
+
+        function resetApp() {
+            if (confirm('모든 입력 필드를 초기화하시겠습니까?')) {
+                dailyLogInput.value = '';
+                emotionButtons.forEach(btn => btn.classList.remove('selected'));
+                selectedEmotion = null;
+                resultArea.style.display = 'none';
+                if (historySection.style.display !== 'none') {
+                     toggleHistoryView();
+                }
+            }
+        }
+
+        function generateMockResult(log, emotion) {
+            return {
+                emotionTag: emotion,
+                summary: "분석을 완료하지 못했습니다",
+                oneLineSummary: "서버와의 연결 상태를 확인해주세요. (임시 메시지)",
+                keyTopic: "연결 오류",
+                missions: ["네트워크 확인하기", "잠시 후 다시 시도하기", "관리자에게 문의하기"]
+            };
+        }
+    </script>
 
 </body>
 </html>
+
